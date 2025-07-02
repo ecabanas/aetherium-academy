@@ -15,7 +15,7 @@ const AiTutorChatbotInputSchema = z.object({
   topic: z.string().describe('The topic to be tutored on (e.g., Machine Learning, Quantum Computing).'),
   question: z.string().describe('The question to ask the AI tutor.'),
   chatHistory: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
+    role: z.enum(['user', 'model']),
     content: z.string(),
   })).optional().describe('The chat history between the user and the AI'),
 });
@@ -44,11 +44,7 @@ const prompt = ai.definePrompt({
   {{#if chatHistory}}
   Here is the chat history:
   {{#each chatHistory}}
-  {{#if (eq role \"user\")}}
-  User: {{{content}}}
-  {{else}}
-  Assistant: {{{content}}}
-  {{/if}}
+  {{role}}: {{{content}}}
   {{/each}}
   {{/if}}
 

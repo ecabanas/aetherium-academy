@@ -19,7 +19,7 @@ import { aiTutorChatbot } from "@/ai/flows/ai-tutor";
 import { generateFlashcards } from "@/ai/flows/generate-flashcards";
 
 type Message = {
-  role: "user" | "assistant";
+  role: "user" | "model";
   content: string;
 };
 
@@ -52,7 +52,7 @@ export function TutorClient() {
       try {
         const chatHistory = messages.map(m => ({ role: m.role, content: m.content }));
         const response = await aiTutorChatbot({ topic, question: input, chatHistory });
-        const assistantMessage: Message = { role: "assistant", content: response.answer };
+        const assistantMessage: Message = { role: "model", content: response.answer };
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (error) {
         toast({
@@ -146,7 +146,7 @@ export function TutorClient() {
                   message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {message.role === "assistant" && (
+                {message.role === "model" && (
                   <Avatar>
                     <AvatarFallback><Bot /></AvatarFallback>
                   </Avatar>
