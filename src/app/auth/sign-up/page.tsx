@@ -40,7 +40,7 @@ export default function SignUpPage() {
             <Input id="password" type="password" />
           </div>
           <Button type="submit" className="w-full" asChild>
-            <Link href="/">Create an account</Link>
+            <Link href="/dashboard">Create an account</Link>
           </Button>
         </div>
         <div className="mt-4 text-center text-sm">

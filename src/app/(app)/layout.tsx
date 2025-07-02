@@ -25,7 +25,7 @@ import {
 import { UserNav } from "@/components/user-nav";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tutor", label: "AI Tutor", icon: Bot },
   { href: "/flashcards", label: "Flashcards", icon: GraduationCap },
   { href: "/history", label: "Session History", icon: History },
