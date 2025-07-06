@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
@@ -116,9 +117,10 @@ export function TutorClient() {
           });
         }
       } catch (error) {
+         console.error("Flashcard generation failed:", error);
          toast({
           title: "Error",
-          description: "Failed to generate flashcards.",
+          description: "Failed to generate flashcards. Check the developer console for more details.",
           variant: "destructive",
         });
       }
