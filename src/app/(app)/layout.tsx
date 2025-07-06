@@ -9,6 +9,7 @@ import {
   History,
   LayoutDashboard,
   User as UserIcon,
+  ChevronLeft,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -21,6 +22,7 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { UserNav } from "@/components/user-nav";
 
@@ -32,12 +34,32 @@ const navItems = [
   { href: "/profile", label: "Profile", icon: UserIcon },
 ];
 
+function CollapseButton() {
+  const { toggleSidebar, state } = useSidebar();
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        onClick={toggleSidebar}
+        tooltip={state === 'expanded' ? 'Collapse' : 'Expand'}
+      >
+        <ChevronLeft
+          className={`transition-transform duration-300 ${
+            state === 'collapsed' ? 'rotate-180' : ''
+          }`}
+        />
+        <span>{state === 'expanded' ? 'Collapse' : 'Expand'}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <BrainCircuit className="h-8 w-8 text-primary" />
@@ -63,7 +85,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          {/* You can add footer elements here if needed */}
+          <SidebarMenu>
+            <CollapseButton />
+          </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
