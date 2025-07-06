@@ -21,9 +21,10 @@ const sampleFlashcards: AllFlashcards = {
   "Other": [],
 };
 
-async function getUserIdFromToken(idToken: string): Promise<string> {
+async function getUserIdFromToken(idToken: string): Promise<string | null> {
   if (!idToken || typeof idToken !== 'string' || idToken.trim() === '') {
-     throw new Error("Authentication error: The provided ID token was empty or invalid.");
+     console.error("Authentication error: The provided ID token was empty or invalid. This may happen if the user is not logged in.");
+     return null;
   }
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
@@ -35,12 +36,16 @@ async function getUserIdFromToken(idToken: string): Promise<string> {
     console.error(`* Message: ${error.message}`);
     console.error(`* `);
     console.error(`* This error occurred while trying to verify a user's login session on the server.`);
-    console.error(`* 'auth/argument-error' almost always means the server environment (where this code runs) is`);
-    console.error(`* configured for a different Firebase project than the client application (what the user sees).`);
-    console.error(`* Please verify that the Google Cloud project ID of your environment matches the`);
-    console.error(`* 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' in your .env file.`);
+    console.error(`* This usually means the backend environment is not configured for the correct Firebase project.`);
+    if (errorCode === 'auth/argument-error') {
+      console.error(`* 'auth/argument-error' almost always means the server environment (where this code runs) is`);
+      console.error(`* configured for a different Firebase project than the client application (what the user sees).`);
+      console.error(`* Please verify that the Google Cloud project ID of your environment matches the`);
+      console.error(`* 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' in your .env file.`);
+    }
     console.error(`************************************************************************************************`);
-    throw new Error(`Unauthorized. Token verification failed with code: ${errorCode}`);
+    // Return null instead of throwing an error to prevent crashing the app.
+    return null;
   }
 }
 
@@ -50,6 +55,12 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
   }
   
   const userId = await getUserIdFromToken(idToken);
+  // If authentication fails, we cannot save. Log a warning and return 0.
+  if (!userId) {
+    console.warn("User is not authenticated or token verification failed. Skipping flashcard save.");
+    return 0;
+  }
+
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const topicDocRef = flashcardsCollectionRef.doc(topic);
@@ -81,12 +92,20 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
 
 export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFlashcards> {
   const userId = await getUserIdFromToken(idToken);
+
+  // If authentication fails, fall back to sample data to avoid crashing.
+  if (!userId) {
+    console.warn("User is not authenticated or token verification failed. Returning sample flashcards.");
+    return sampleFlashcards;
+  }
+
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const snapshot = await flashcardsCollectionRef.get();
 
   if (snapshot.empty) {
     // This is a new user, let's seed their account with initial data.
+    // Use the idToken directly, as we know it's valid if we got this far
     await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
     return sampleFlashcards;
   }
