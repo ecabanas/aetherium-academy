@@ -15,7 +15,6 @@ const initialMlFlashcards = [
 ];
 
 async function getUserIdFromToken(idToken: string): Promise<string> {
-  // Added more robust validation and logging
   if (!idToken || typeof idToken !== 'string' || idToken.trim() === '') {
     console.error("getUserIdFromToken received an invalid ID token. This is often due to a misconfiguration or the user's session expiring.", { receivedToken: idToken });
     throw new Error("Unauthorized. A valid ID token was not provided.");
@@ -26,7 +25,6 @@ async function getUserIdFromToken(idToken: string): Promise<string> {
   } catch (error: any) {
     const errorCode = error.code || 'UNKNOWN';
     console.error(`Error verifying ID token (code: ${errorCode}):`, error.message);
-    // This part is key: a common reason for auth/argument-error is a project mismatch.
     if (errorCode === 'auth/argument-error') {
        console.error("Firebase Auth Error Hint: 'auth/argument-error' can occur if the server's Firebase Admin SDK is configured for a different project than the client application, or if the server environment is not authenticated correctly.");
     }
@@ -39,14 +37,7 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
     return;
   }
   
-  let userId;
-  try {
-    userId = await getUserIdFromToken(idToken);
-  } catch (error) {
-    console.warn("Could not save flashcards to the database due to an authentication error. This is likely a Firebase project configuration issue. Skipping the save operation.");
-    return; // Gracefully exit without crashing the app
-  }
-
+  const userId = await getUserIdFromToken(idToken);
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const topicDocRef = flashcardsCollectionRef.doc(topic);
@@ -71,35 +62,13 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
 }
 
 export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFlashcards> {
-  let userId;
-  try {
-    userId = await getUserIdFromToken(idToken);
-  } catch (error: any) {
-    // If token verification fails, it's likely an environment configuration issue.
-    // We will log a detailed error and return initial data to unblock the UI.
-    console.error("CRITICAL: Failed to verify user token in getFlashcardsFromDatabase.", error.message);
-    console.error("This is likely due to a Firebase project configuration mismatch between your frontend (.env) and your backend environment. Please verify they are pointing to the SAME project.");
-    
-    // Return initial seed data so the page can still render.
-    return {
-        "Machine Learning": initialMlFlashcards,
-        "Quantum Computing": [],
-        "Other": [],
-    };
-  }
-  
+  const userId = await getUserIdFromToken(idToken);
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const snapshot = await flashcardsCollectionRef.get();
 
   if (snapshot.empty) {
-    // Seeding initial data for a better first-time experience
-    try {
-      await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
-    } catch (e) {
-      // This catch block is a safeguard. saveFlashcardsToDatabase should handle its own errors.
-      console.warn("Could not seed initial flashcards due to an unexpected error during save.", e);
-    }
+    await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
     
     return {
         "Machine Learning": initialMlFlashcards,
