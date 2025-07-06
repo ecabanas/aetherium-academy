@@ -62,7 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
             <BrainCircuit className="h-8 w-8 text-primary" />
-            <span className="font-headline text-2xl font-bold transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0">
+            <span className="font-headline text-2xl font-bold transition-opacity duration-200 group-data-[collapsible=icon]:hidden">
               Aetherium
             </span>
           </div>
