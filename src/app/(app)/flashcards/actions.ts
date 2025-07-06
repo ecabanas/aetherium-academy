@@ -42,7 +42,7 @@ async function getUserIdFromToken(idToken: string): Promise<string | null> {
 * Please ensure your environment's Google Cloud Project ID is the same as the
 * NEXT_PUBLIC_FIREBASE_PROJECT_ID in your .env file.
 *
-* The app will now fall back to using sample data.
+* The app will now fall back to using sample data or prevent write operations.
 ************************************************************************************************`);
     return null;
   }
@@ -55,8 +55,8 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
   
   const userId = await getUserIdFromToken(idToken);
   if (!userId) {
-    console.warn("User is not authenticated, skipping saveFlashcardsToDatabase.");
-    return 0;
+    // Throw an error to give the user clear feedback on the client side.
+    throw new Error("Authentication failed. Cannot save flashcards. Please verify your environment configuration.");
   }
   
   const userDocRef = firestore.collection('users').doc(userId);
@@ -101,8 +101,6 @@ export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFla
 
   if (snapshot.empty) {
     // This is a new user, let's seed their account with initial data.
-    // This will only succeed if the token is valid, which it won't be in the error case,
-    // but this is the correct logic flow for a new, properly authenticated user.
     await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
     return sampleFlashcards;
   }
