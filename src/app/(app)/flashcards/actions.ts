@@ -38,7 +38,15 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
   if (!newFlashcards || newFlashcards.length === 0) {
     return;
   }
-  const userId = await getUserIdFromToken(idToken);
+  
+  let userId;
+  try {
+    userId = await getUserIdFromToken(idToken);
+  } catch (error) {
+    console.warn("Could not save flashcards to the database due to an authentication error. This is likely a Firebase project configuration issue. Skipping the save operation.");
+    return; // Gracefully exit without crashing the app
+  }
+
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const topicDocRef = flashcardsCollectionRef.doc(topic);
@@ -86,8 +94,13 @@ export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFla
 
   if (snapshot.empty) {
     // Seeding initial data for a better first-time experience
-    await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
-
+    try {
+      await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
+    } catch (e) {
+      // This catch block is a safeguard. saveFlashcardsToDatabase should handle its own errors.
+      console.warn("Could not seed initial flashcards due to an unexpected error during save.", e);
+    }
+    
     return {
         "Machine Learning": initialMlFlashcards,
         "Quantum Computing": [],
