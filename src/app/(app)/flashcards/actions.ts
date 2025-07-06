@@ -14,9 +14,10 @@ async function getUserIdFromToken(idToken: string): Promise<string> {
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
     return decodedToken.uid;
-  } catch (error) {
-    console.error("Error verifying ID token:", error);
-    throw new Error("Unauthorized request.");
+  } catch (error: any) {
+    const errorCode = error.code || 'UNKNOWN';
+    console.error(`Error verifying ID token (code: ${errorCode}):`, error.message);
+    throw new Error(`Unauthorized. Token verification failed with code: ${errorCode}`);
   }
 }
 
