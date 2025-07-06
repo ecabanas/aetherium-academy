@@ -103,24 +103,31 @@ export function TutorClient() {
         const newFlashcards = await generateFlashcards({ chatConversation: conversation });
         
         if (newFlashcards && newFlashcards.length > 0) {
-          await saveFlashcardsToDatabase(idToken, topic, newFlashcards);
-           toast({
-            title: "Success!",
-            description: `${newFlashcards.length} flashcard(s) generated. Click here to view them.`,
-            className: "cursor-pointer",
-            onClick: () => router.push('/flashcards'),
-          });
+          const addedCount = await saveFlashcardsToDatabase(idToken, topic, newFlashcards);
+          if (addedCount > 0) {
+            toast({
+              title: "Success!",
+              description: `${addedCount} new flashcard(s) saved. Click here to view them.`,
+              className: "cursor-pointer",
+              onClick: () => router.push('/flashcards'),
+            });
+          } else {
+            toast({
+              title: "No new flashcards to save.",
+              description: "The generated flashcards already exist in your deck.",
+            });
+          }
         } else {
            toast({
             title: "No flashcards generated",
-            description: "The AI couldn't find any new concepts to create flashcards from this conversation.",
+            description: "The AI couldn't find any concepts to create flashcards from this conversation.",
           });
         }
-      } catch (error) {
+      } catch (error: any) {
          console.error("Flashcard generation failed:", error);
          toast({
           title: "Error",
-          description: "Failed to generate flashcards. Check the developer console for more details.",
+          description: error.message || "Failed to generate flashcards. Check the developer console for more details.",
           variant: "destructive",
         });
       }

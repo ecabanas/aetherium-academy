@@ -14,10 +14,9 @@ const initialMlFlashcards = [
   { question: "Define 'Overfitting' in Machine Learning.", answer: "A modeling error that occurs when a function is too closely fit to a limited set of data points. It may therefore fail to predict future observations reliably." }
 ];
 
-async function getUserIdFromToken(idToken: string): Promise<string | null> {
+async function getUserIdFromToken(idToken: string): Promise<string> {
   if (!idToken || typeof idToken !== 'string' || idToken.trim() === '') {
-    console.error("getUserIdFromToken received an invalid ID token. This is often due to a misconfiguration or the user's session expiring.");
-    return null;
+    throw new Error("Invalid ID token provided.");
   }
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
@@ -25,38 +24,37 @@ async function getUserIdFromToken(idToken: string): Promise<string | null> {
   } catch (error: any) {
     const errorCode = error.code || 'UNKNOWN';
     console.error(`Error verifying ID token (code: ${errorCode}):`, error.message);
-    if (errorCode === 'auth/argument-error') {
+     if (errorCode === 'auth/argument-error') {
        console.error("Firebase Auth Error Hint: 'auth/argument-error' almost always means the server environment (where this code runs) is configured for a different Firebase project than the client application (what the user sees). Please verify that the Google Cloud project ID of your environment matches the 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' in your .env file.");
     }
-    return null;
+    throw new Error(`Unauthorized. Token verification failed with code: ${errorCode}`);
   }
 }
 
-export async function saveFlashcardsToDatabase(idToken: string, topic: string, newFlashcards: GenerateFlashcardsOutput) {
+export async function saveFlashcardsToDatabase(idToken: string, topic: string, newFlashcards: GenerateFlashcardsOutput): Promise<number> {
   if (!newFlashcards || newFlashcards.length === 0) {
-    return;
+    return 0;
   }
   
   const userId = await getUserIdFromToken(idToken);
-  if (!userId) {
-    console.warn("Could not save flashcards: user is not authenticated or token verification failed. Please check server logs for details.");
-    return; // Exit gracefully
-  }
-
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const topicDocRef = flashcardsCollectionRef.doc(topic);
+
+  let uniqueNewCardsCount = 0;
 
   await firestore.runTransaction(async (transaction) => {
     const topicDoc = await transaction.get(topicDocRef);
     if (!topicDoc.exists) {
       transaction.set(topicDocRef, { cards: newFlashcards });
+      uniqueNewCardsCount = newFlashcards.length;
     } else {
       const existingData = topicDoc.data();
       const existingCards: GenerateFlashcardsOutput = existingData?.cards || [];
       const existingQuestions = new Set(existingCards.map(fc => fc.question));
       
       const uniqueNewCards = newFlashcards.filter(fc => !existingQuestions.has(fc.question));
+      uniqueNewCardsCount = uniqueNewCards.length;
       
       if (uniqueNewCards.length > 0) {
         const updatedCards = [...existingCards, ...uniqueNewCards];
@@ -64,29 +62,24 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
       }
     }
   });
+  return uniqueNewCardsCount;
 }
 
 export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFlashcards> {
   const userId = await getUserIdFromToken(idToken);
-
-  const fallbackData = {
-    "Machine Learning": initialMlFlashcards,
-    "Quantum Computing": [],
-    "Other": [],
-  };
-  
-  if (!userId) {
-    console.warn("Could not fetch flashcards: user is not authenticated or token verification failed. Returning initial data. Please check server logs for details.");
-    return fallbackData;
-  }
 
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const snapshot = await flashcardsCollectionRef.get();
 
   if (snapshot.empty) {
+    // This is a new user, let's seed their account with initial data
     await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
-    return fallbackData;
+    return {
+      "Machine Learning": initialMlFlashcards,
+      "Quantum Computing": [],
+      "Other": [],
+    };
   }
 
   const allFlashcards: AllFlashcards = {};
