@@ -60,8 +60,9 @@ const aiTutorChatbotFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return {
-      answer: output!.answer,
-    };
+    if (!output) {
+      throw new Error("The AI model failed to produce an output that matched the required format.");
+    }
+    return output;
   }
 );

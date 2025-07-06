@@ -103,14 +103,18 @@ export function TutorClient() {
         
         if (newFlashcards && newFlashcards.length > 0) {
           await saveFlashcardsToDatabase(idToken, topic, newFlashcards);
+           toast({
+            title: "Success!",
+            description: `${newFlashcards.length} flashcard(s) generated. Click here to view them.`,
+            className: "cursor-pointer",
+            onClick: () => router.push('/flashcards'),
+          });
+        } else {
+           toast({
+            title: "No flashcards generated",
+            description: "The AI couldn't find any new concepts to create flashcards from this conversation.",
+          });
         }
-
-        toast({
-          title: "Success!",
-          description: "Flashcards generated. Click here to view them.",
-          className: "cursor-pointer",
-          onClick: () => router.push('/flashcards'),
-        });
       } catch (error) {
          toast({
           title: "Error",
