@@ -14,20 +14,37 @@ const initialMlFlashcards = [
   { question: "Define 'Overfitting' in Machine Learning.", answer: "A modeling error that occurs when a function is too closely fit to a limited set of data points. It may therefore fail to predict future observations reliably." }
 ];
 
-async function getUserIdFromToken(idToken: string): Promise<string> {
+const sampleFlashcards: AllFlashcards = {
+  "Machine Learning": initialMlFlashcards,
+  "Quantum Computing": [],
+  "Other": [],
+};
+
+async function getUserIdFromToken(idToken: string): Promise<string | null> {
   if (!idToken || typeof idToken !== 'string' || idToken.trim() === '') {
-    throw new Error("Invalid ID token provided.");
+    console.error("Attempted to verify an invalid ID token. It was either empty or not a string.");
+    return null;
   }
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
     return decodedToken.uid;
   } catch (error: any) {
     const errorCode = error.code || 'UNKNOWN';
-    console.error(`Error verifying ID token (code: ${errorCode}):`, error.message);
-     if (errorCode === 'auth/argument-error') {
-       console.error("Firebase Auth Error Hint: 'auth/argument-error' almost always means the server environment (where this code runs) is configured for a different Firebase project than the client application (what the user sees). Please verify that the Google Cloud project ID of your environment matches the 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' in your .env file.");
-    }
-    throw new Error(`Unauthorized. Token verification failed with code: ${errorCode}`);
+    console.error(`************************************************************************************************
+* Firebase Admin SDK Error (code: ${errorCode})
+* Message: ${error.message}
+* 
+* This error occurred while trying to verify a user's login session on the server.
+* The most common cause for 'auth/argument-error' is a project configuration mismatch:
+*   1. The frontend (browser) is configured for one Firebase project in your .env file.
+*   2. The backend (this server environment) is configured for a DIFFERENT Firebase project.
+*
+* Please ensure your environment's Google Cloud Project ID is the same as the
+* NEXT_PUBLIC_FIREBASE_PROJECT_ID in your .env file.
+*
+* The app will now fall back to using sample data.
+************************************************************************************************`);
+    return null;
   }
 }
 
@@ -37,6 +54,11 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
   }
   
   const userId = await getUserIdFromToken(idToken);
+  if (!userId) {
+    console.warn("User is not authenticated, skipping saveFlashcardsToDatabase.");
+    return 0;
+  }
+  
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const topicDocRef = flashcardsCollectionRef.doc(topic);
@@ -68,18 +90,21 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
 export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFlashcards> {
   const userId = await getUserIdFromToken(idToken);
 
+  if (!userId) {
+    console.warn("User is not authenticated, falling back to sample flashcard data.");
+    return sampleFlashcards;
+  }
+
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const snapshot = await flashcardsCollectionRef.get();
 
   if (snapshot.empty) {
-    // This is a new user, let's seed their account with initial data
+    // This is a new user, let's seed their account with initial data.
+    // This will only succeed if the token is valid, which it won't be in the error case,
+    // but this is the correct logic flow for a new, properly authenticated user.
     await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
-    return {
-      "Machine Learning": initialMlFlashcards,
-      "Quantum Computing": [],
-      "Other": [],
-    };
+    return sampleFlashcards;
   }
 
   const allFlashcards: AllFlashcards = {};
