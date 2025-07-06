@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +31,7 @@ export function TutorClient() {
   const [isPending, startTransition] = useTransition();
   const [isGenerating, setIsGenerating] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function TutorClient() {
 
     startTransition(async () => {
       try {
-        const chatHistory = messages.map(m => ({ role: m.role, content: m.content }));
+        const chatHistory = messages.map(m => ({ role: m.role, content: m.content as string }));
         const response = await aiTutorChatbot({ topic, question: input, chatHistory });
         const assistantMessage: Message = { role: "model", content: response.answer };
         setMessages((prev) => [...prev, assistantMessage]);
@@ -84,7 +86,9 @@ export function TutorClient() {
         await generateFlashcards({ chatConversation: conversation });
         toast({
           title: "Success!",
-          description: "Flashcards have been generated. You can view them on the Flashcards page.",
+          description: "Flashcards generated. Click here to view them.",
+          className: "cursor-pointer",
+          onClick: () => router.push('/flashcards'),
         });
       } catch (error) {
          toast({
