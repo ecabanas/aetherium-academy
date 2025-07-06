@@ -14,10 +14,10 @@ const initialMlFlashcards = [
   { question: "Define 'Overfitting' in Machine Learning.", answer: "A modeling error that occurs when a function is too closely fit to a limited set of data points. It may therefore fail to predict future observations reliably." }
 ];
 
-async function getUserIdFromToken(idToken: string): Promise<string> {
+async function getUserIdFromToken(idToken: string): Promise<string | null> {
   if (!idToken || typeof idToken !== 'string' || idToken.trim() === '') {
-    console.error("getUserIdFromToken received an invalid ID token. This is often due to a misconfiguration or the user's session expiring.", { receivedToken: idToken });
-    throw new Error("Unauthorized. A valid ID token was not provided.");
+    console.error("getUserIdFromToken received an invalid ID token. This is often due to a misconfiguration or the user's session expiring.");
+    return null;
   }
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
@@ -26,9 +26,9 @@ async function getUserIdFromToken(idToken: string): Promise<string> {
     const errorCode = error.code || 'UNKNOWN';
     console.error(`Error verifying ID token (code: ${errorCode}):`, error.message);
     if (errorCode === 'auth/argument-error') {
-       console.error("Firebase Auth Error Hint: 'auth/argument-error' can occur if the server's Firebase Admin SDK is configured for a different project than the client application, or if the server environment is not authenticated correctly.");
+       console.error("Firebase Auth Error Hint: 'auth/argument-error' almost always means the server environment (where this code runs) is configured for a different Firebase project than the client application (what the user sees). Please verify that the Google Cloud project ID of your environment matches the 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' in your .env file.");
     }
-    throw new Error(`Unauthorized. Token verification failed with code: ${errorCode}`);
+    return null;
   }
 }
 
@@ -38,6 +38,11 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
   }
   
   const userId = await getUserIdFromToken(idToken);
+  if (!userId) {
+    console.warn("Could not save flashcards: user is not authenticated or token verification failed. Please check server logs for details.");
+    return; // Exit gracefully
+  }
+
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const topicDocRef = flashcardsCollectionRef.doc(topic);
@@ -63,18 +68,25 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
 
 export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFlashcards> {
   const userId = await getUserIdFromToken(idToken);
+
+  const fallbackData = {
+    "Machine Learning": initialMlFlashcards,
+    "Quantum Computing": [],
+    "Other": [],
+  };
+  
+  if (!userId) {
+    console.warn("Could not fetch flashcards: user is not authenticated or token verification failed. Returning initial data. Please check server logs for details.");
+    return fallbackData;
+  }
+
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const snapshot = await flashcardsCollectionRef.get();
 
   if (snapshot.empty) {
     await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
-    
-    return {
-        "Machine Learning": initialMlFlashcards,
-        "Quantum Computing": [],
-        "Other": [],
-    }
+    return fallbackData;
   }
 
   const allFlashcards: AllFlashcards = {};
@@ -82,7 +94,7 @@ export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFla
     allFlashcards[doc.id] = doc.data().cards;
   });
 
-  // Ensure default topics exist
+  // Ensure default topics exist even if they are empty in the DB
   if (!allFlashcards["Machine Learning"]) allFlashcards["Machine Learning"] = [];
   if (!allFlashcards["Quantum Computing"]) allFlashcards["Quantum Computing"] = [];
   if (!allFlashcards["Other"]) allFlashcards["Other"] = [];
