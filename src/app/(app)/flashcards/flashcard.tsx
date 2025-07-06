@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, RefreshCw } from "lucide-react";
@@ -9,14 +9,27 @@ import { cn } from "@/lib/utils";
 type FlashcardProps = {
   question: string;
   answer: string;
+  onMarkLearned: () => void;
+  onMarkNeedsReview: () => void;
 };
 
-export function Flashcard({ question, answer }: FlashcardProps) {
+export function Flashcard({ question, answer, onMarkLearned, onMarkNeedsReview }: FlashcardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
+
+  // When the card content changes, flip it back to the front.
+  useEffect(() => {
+    setIsFlipped(false);
+  }, [question]);
+
+
+  const handleButtonClick = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation(); // Prevent the card from flipping when a button is clicked
+    action();
+  }
 
   return (
     <div
-      className="[perspective:1000px] w-full h-64 group"
+      className="[perspective:1000px] w-full h-64 group cursor-pointer"
       onClick={() => setIsFlipped(!isFlipped)}
     >
       <Card
@@ -36,11 +49,11 @@ export function Flashcard({ question, answer }: FlashcardProps) {
             <p className="text-base text-center">{answer}</p>
           </CardContent>
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={(e) => handleButtonClick(e, onMarkNeedsReview)}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Needs Review
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={(e) => handleButtonClick(e, onMarkLearned)}>
               <Check className="h-4 w-4 mr-2" />
               Learned
             </Button>
