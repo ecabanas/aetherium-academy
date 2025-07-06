@@ -1,11 +1,12 @@
-import * as admin from 'firebase-admin';
-import { applicationDefault } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, applicationDefault } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: applicationDefault(),
-  });
-}
+const app = getApps().length
+  ? getApp()
+  : initializeApp({
+      credential: applicationDefault(),
+    });
 
-export const firestore = admin.firestore();
-export const auth = admin.auth();
+export const firestore = getFirestore(app);
+export const auth = getAuth(app);
