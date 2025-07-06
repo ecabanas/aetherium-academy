@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { Flashcard } from "./flashcard";
+import { Check, RefreshCw } from "lucide-react";
 
 type FlashcardData = {
   question: string;
@@ -93,7 +94,7 @@ const FlashcardDeck = ({ cards }: { cards: FlashcardData[] }) => {
   }
   
   return (
-    <div className="w-full max-w-lg mx-auto flex flex-col gap-4">
+    <div className="w-full max-w-lg mx-auto flex flex-col gap-6">
       <Carousel setApi={setApi} className="w-full">
         <CarouselContent>
           {cards.map((card, index) => (
@@ -101,8 +102,6 @@ const FlashcardDeck = ({ cards }: { cards: FlashcardData[] }) => {
               <Flashcard 
                 question={card.question} 
                 answer={card.answer}
-                onMarkLearned={handleMark}
-                onMarkNeedsReview={handleMark}
               />
             </CarouselItem>
           ))}
@@ -120,10 +119,25 @@ const FlashcardDeck = ({ cards }: { cards: FlashcardData[] }) => {
         <CarouselNext className="-right-12" />
       </Carousel>
       
-      <div className="text-center text-sm text-muted-foreground">
-        Card {Math.min(current, count)} of {count}
+      {current <= count && (
+        <div className="flex justify-center gap-4">
+            <Button variant="outline" size="lg" onClick={handleMark}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Needs Review
+            </Button>
+            <Button size="lg" onClick={handleMark}>
+              <Check className="h-4 w-4 mr-2" />
+              Learned
+            </Button>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <div className="text-center text-sm text-muted-foreground">
+          Card {Math.min(current, count)} of {count}
+        </div>
+        <Progress value={deckProgress} className="w-full" />
       </div>
-      <Progress value={deckProgress} className="w-full" />
     </div>
   );
 };
