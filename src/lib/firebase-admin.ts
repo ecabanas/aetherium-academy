@@ -1,9 +1,8 @@
 import * as admin from 'firebase-admin';
-import { applicationDefault } from 'firebase-admin/app';
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: applicationDefault(),
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   });
 }
 
