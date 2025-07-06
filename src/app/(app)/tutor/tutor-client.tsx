@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -18,6 +18,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { aiTutorChatbot } from "@/ai/flows/ai-tutor";
 import { generateFlashcards } from "@/ai/flows/generate-flashcards";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type Message = {
   role: "user" | "model";
@@ -52,7 +54,7 @@ export function TutorClient() {
 
     startTransition(async () => {
       try {
-        const chatHistory = messages.map(m => ({ role: m.role, content: m.content as string }));
+        const chatHistory = messages.map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
         const response = await aiTutorChatbot({ topic, question: input, chatHistory });
         const assistantMessage: Message = { role: "model", content: response.answer };
         setMessages((prev) => [...prev, assistantMessage]);
@@ -83,7 +85,21 @@ export function TutorClient() {
           title: "Generating Flashcards",
           description: "The AI is creating flashcards from your conversation...",
         });
-        await generateFlashcards({ chatConversation: conversation });
+        const newFlashcards = await generateFlashcards({ chatConversation: conversation });
+        
+        if (newFlashcards && newFlashcards.length > 0) {
+          const existingFlashcards = JSON.parse(localStorage.getItem('user-flashcards') || '{}');
+          const topicFlashcards = existingFlashcards[topic] || [];
+          
+          const existingQuestions = new Set(topicFlashcards.map((fc: any) => fc.question));
+          const newUniqueCards = newFlashcards.filter(fc => !existingQuestions.has(fc.question));
+
+          if(newUniqueCards.length > 0) {
+            existingFlashcards[topic] = [...topicFlashcards, ...newUniqueCards];
+            localStorage.setItem('user-flashcards', JSON.stringify(existingFlashcards));
+          }
+      }
+
         toast({
           title: "Success!",
           description: "Flashcards generated. Click here to view them.",
@@ -105,7 +121,7 @@ export function TutorClient() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-4">
           <CardTitle className="font-headline">AI Tutor</CardTitle>
-          <Select defaultValue="Machine Learning" onValueChange={setTopic}>
+          <Select defaultValue="Machine Learning" onValueChange={(newTopic) => { setTopic(newTopic); setMessages([]) }}>
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Select a topic" />
             </SelectTrigger>
@@ -129,7 +145,7 @@ export function TutorClient() {
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={handleGenerateFlashcards} disabled={isGenerating}>
+        <Button onClick={handleGenerateFlashcards} disabled={isGenerating || messages.length === 0}>
           <Sparkles className="mr-2 h-4 w-4" />
           {isGenerating ? 'Generating...' : 'Create Flashcards'}
         </Button>
@@ -162,7 +178,35 @@ export function TutorClient() {
                       : "bg-muted"
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    {message.role === 'model' ? (
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                                p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                                h1: ({node, ...props}) => <h1 className="text-xl font-bold my-2" {...props} />,
+                                h2: ({node, ...props}) => <h2 className="text-lg font-semibold my-2" {...props} />,
+                                h3: ({node, ...props}) => <h3 className="text-base font-semibold my-1" {...props} />,
+                                ul: ({node, ...props}) => <ul className="list-disc list-outside ml-5 my-2 space-y-1" {...props} />,
+                                ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-5 my-2 space-y-1" {...props} />,
+                                li: ({node, ...props}) => <li className="" {...props} />,
+                                a: ({node, ...props}) => <a className="text-primary underline" target="_blank" rel="noopener noreferrer" {...props} />,
+                                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-muted-foreground/50 pl-4 italic my-2" {...props} />,
+                                code: ({node, inline, className, children, ...props}) => {
+                                  return !inline ? (
+                                    <pre className="bg-background rounded-md p-3 my-2 font-mono text-sm overflow-x-auto">
+                                      <code {...props}>{children}</code>
+                                    </pre>
+                                  ) : (
+                                    <code className="bg-background rounded px-1.5 py-1 font-mono text-sm" {...props}>
+                                      {children}
+                                    </code>
+                                  )
+                                }
+                              }}
+                        >{message.content}</ReactMarkdown>
+                    ) : (
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    )}
                 </div>
                 {message.role === "user" && (
                   <Avatar>

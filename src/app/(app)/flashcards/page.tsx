@@ -1,7 +1,19 @@
+'use client';
+
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flashcard } from "./flashcard";
 
-const mlFlashcards = [
+type FlashcardData = {
+  question: string;
+  answer: string;
+};
+
+type AllFlashcards = {
+  [topic: string]: FlashcardData[];
+};
+
+const initialMlFlashcards: FlashcardData[] = [
   {
     question: "What is Linear Regression?",
     answer: "A supervised learning algorithm used for predicting a continuous dependent variable based on one or more independent variables.",
@@ -16,7 +28,7 @@ const mlFlashcards = [
   }
 ];
 
-const qcFlashcards = [
+const initialQcFlashcards: FlashcardData[] = [
     {
         question: "What is a Qubit?",
         answer: "The basic unit of quantum information, the quantum analogue of the classical bit. It can exist in a superposition of states."
@@ -31,7 +43,50 @@ const qcFlashcards = [
     },
 ];
 
+const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center h-64">
+        <h3 className="text-xl font-medium">No flashcards yet</h3>
+        <p className="text-sm text-muted-foreground">
+            Generate flashcards from your AI Tutor sessions.
+        </p>
+    </div>
+);
+
 export default function FlashcardsPage() {
+  const [allFlashcards, setAllFlashcards] = useState<AllFlashcards>({
+    "Machine Learning": initialMlFlashcards,
+    "Quantum Computing": initialQcFlashcards,
+    "Other": [],
+  });
+
+  useEffect(() => {
+    try {
+      const storedFlashcards: AllFlashcards = JSON.parse(localStorage.getItem("user-flashcards") || "{}");
+      
+      const mergedFlashcards: AllFlashcards = {
+        "Machine Learning": [...initialMlFlashcards],
+        "Quantum Computing": [...initialQcFlashcards],
+        "Other": [],
+      };
+
+      for (const topic in storedFlashcards) {
+        if (Object.prototype.hasOwnProperty.call(storedFlashcards, topic)) {
+          const existingQuestions = new Set((mergedFlashcards[topic] || []).map(fc => fc.question));
+          const newUniqueCards = storedFlashcards[topic].filter(storedCard => !existingQuestions.has(storedCard.question));
+          mergedFlashcards[topic] = [...(mergedFlashcards[topic] || []), ...newUniqueCards];
+        }
+      }
+      setAllFlashcards(mergedFlashcards);
+
+    } catch (error) {
+      console.error("Failed to parse flashcards from localStorage", error);
+    }
+  }, []);
+
+  const mlFlashcards = allFlashcards["Machine Learning"] || [];
+  const qcFlashcards = allFlashcards["Quantum Computing"] || [];
+  const otherFlashcards = allFlashcards["Other"] || [];
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -45,26 +100,31 @@ export default function FlashcardsPage() {
           <TabsTrigger value="other">Other</TabsTrigger>
         </TabsList>
         <TabsContent value="ml" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mlFlashcards.map((card, index) => (
-              <Flashcard key={index} question={card.question} answer={card.answer} />
-            ))}
-          </div>
+          {mlFlashcards.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {mlFlashcards.map((card, index) => (
+                <Flashcard key={index} question={card.question} answer={card.answer} />
+              ))}
+            </div>
+          ) : <div className="col-span-full"><EmptyState /></div> }
         </TabsContent>
         <TabsContent value="qc" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {qcFlashcards.map((card, index) => (
-              <Flashcard key={index} question={card.question} answer={card.answer} />
-            ))}
-          </div>
+          {qcFlashcards.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {qcFlashcards.map((card, index) => (
+                <Flashcard key={index} question={card.question} answer={card.answer} />
+              ))}
+            </div>
+          ) : <div className="col-span-full"><EmptyState /></div> }
         </TabsContent>
         <TabsContent value="other" className="mt-6">
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center h-64">
-            <h3 className="text-xl font-medium">No flashcards yet</h3>
-            <p className="text-sm text-muted-foreground">
-              Generate flashcards from your AI Tutor sessions.
-            </p>
-          </div>
+          {otherFlashcards.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {otherFlashcards.map((card, index) => (
+                <Flashcard key={index} question={card.question} answer={card.answer} />
+              ))}
+            </div>
+          ) : <EmptyState /> }
         </TabsContent>
       </Tabs>
     </div>
