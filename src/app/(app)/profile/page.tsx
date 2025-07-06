@@ -1,3 +1,6 @@
+'use client';
+
+import { useAuth } from "@/app/auth/auth-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,8 +12,19 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 export default function ProfilePage() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
        <div>
@@ -25,11 +39,11 @@ export default function ProfilePage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
-            <Input id="name" defaultValue="User" />
+            <Input id="name" defaultValue={user.displayName || ""} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" defaultValue="user@example.com" />
+            <Input id="email" type="email" defaultValue={user.email || ""} disabled />
           </div>
         </CardContent>
         <CardFooter className="border-t px-6 py-4">

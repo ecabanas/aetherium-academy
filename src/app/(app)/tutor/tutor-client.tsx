@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/auth/auth-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ type Message = {
 };
 
 export function TutorClient() {
+  const { user } = useAuth();
   const [topic, setTopic] = useState("Machine Learning");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -71,6 +73,15 @@ export function TutorClient() {
   };
 
   const handleGenerateFlashcards = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to generate flashcards.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const conversation = messages.map(m => `${m.role}: ${m.content}`).join('\n');
     if (conversation.length === 0) {
       toast({
@@ -86,10 +97,12 @@ export function TutorClient() {
           title: "Generating Flashcards",
           description: "The AI is creating flashcards from your conversation...",
         });
+
+        const idToken = await user.getIdToken();
         const newFlashcards = await generateFlashcards({ chatConversation: conversation });
         
         if (newFlashcards && newFlashcards.length > 0) {
-          await saveFlashcardsToDatabase(topic, newFlashcards);
+          await saveFlashcardsToDatabase(idToken, topic, newFlashcards);
         }
 
         toast({

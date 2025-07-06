@@ -1,21 +1,31 @@
 'use server';
 
-import { firestore } from '@/lib/firebase-admin';
+import { firestore, auth as adminAuth } from '@/lib/firebase-admin';
 import type { GenerateFlashcardsOutput } from '@/ai/flows/generate-flashcards';
-
-// NOTE: In a real app, this would come from an authentication session.
-const MOCK_USER_ID = 'test-user';
 
 type AllFlashcards = {
   [topic: string]: GenerateFlashcardsOutput;
 };
 
-export async function saveFlashcardsToDatabase(topic: string, newFlashcards: GenerateFlashcardsOutput) {
+async function getUserIdFromToken(idToken: string): Promise<string> {
+  if (!idToken) {
+    throw new Error("ID token must be provided.");
+  }
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    return decodedToken.uid;
+  } catch (error) {
+    console.error("Error verifying ID token:", error);
+    throw new Error("Unauthorized request.");
+  }
+}
+
+export async function saveFlashcardsToDatabase(idToken: string, topic: string, newFlashcards: GenerateFlashcardsOutput) {
   if (!newFlashcards || newFlashcards.length === 0) {
     return;
   }
-
-  const userDocRef = firestore.collection('users').doc(MOCK_USER_ID);
+  const userId = await getUserIdFromToken(idToken);
+  const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const topicDocRef = flashcardsCollectionRef.doc(topic);
 
@@ -38,8 +48,9 @@ export async function saveFlashcardsToDatabase(topic: string, newFlashcards: Gen
   });
 }
 
-export async function getFlashcardsFromDatabase(): Promise<AllFlashcards> {
-  const userDocRef = firestore.collection('users').doc(MOCK_USER_ID);
+export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFlashcards> {
+  const userId = await getUserIdFromToken(idToken);
+  const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const snapshot = await flashcardsCollectionRef.get();
 
@@ -50,17 +61,11 @@ export async function getFlashcardsFromDatabase(): Promise<AllFlashcards> {
       { question: "What is a Decision Tree?", answer: "A supervised learning algorithm that is used for both classification and regression tasks. It has a tree-like structure." },
       { question: "Define 'Overfitting' in Machine Learning.", answer: "A modeling error that occurs when a function is too closely fit to a limited set of data points. It may therefore fail to predict future observations reliably." }
     ];
-    const initialQcFlashcards = [
-      { question: "What is a Qubit?", answer: "The basic unit of quantum information, the quantum analogue of the classical bit. It can exist in a superposition of states." },
-      { question: "What is Superposition?", answer: "A fundamental principle of quantum mechanics where a quantum system can exist in multiple states at the same time until it is measured." },
-      { question: "What is Quantum Entanglement?", answer: "A physical phenomenon that occurs when a pair or group of particles is generated in such a way that the quantum state of each particle of the pair/group cannot be described independently of the state of the others." }
-    ];
-    await saveFlashcardsToDatabase("Machine Learning", initialMlFlashcards);
-    await saveFlashcardsToDatabase("Quantum Computing", initialQcFlashcards);
+    await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
 
     return {
         "Machine Learning": initialMlFlashcards,
-        "Quantum Computing": initialQcFlashcards,
+        "Quantum Computing": [],
         "Other": [],
     }
   }
@@ -74,7 +79,6 @@ export async function getFlashcardsFromDatabase(): Promise<AllFlashcards> {
   if (!allFlashcards["Machine Learning"]) allFlashcards["Machine Learning"] = [];
   if (!allFlashcards["Quantum Computing"]) allFlashcards["Quantum Computing"] = [];
   if (!allFlashcards["Other"]) allFlashcards["Other"] = [];
-
 
   return allFlashcards;
 }

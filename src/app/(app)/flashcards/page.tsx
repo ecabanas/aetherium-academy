@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from "react";
+import { useAuth } from "@/app/auth/auth-provider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -115,16 +116,22 @@ const FlashcardDeck = ({ cards }: { cards: FlashcardData[] }) => {
   );
 };
 
-
 export default function FlashcardsPage() {
+  const { user } = useAuth();
   const [allFlashcards, setAllFlashcards] = useState<AllFlashcards | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadFlashcards() {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
-        const flashcards = await getFlashcardsFromDatabase();
+        const idToken = await user.getIdToken();
+        const flashcards = await getFlashcardsFromDatabase(idToken);
         setAllFlashcards(flashcards);
       } catch (error) {
         console.error("Failed to fetch flashcards from database", error);
@@ -134,7 +141,7 @@ export default function FlashcardsPage() {
       }
     }
     loadFlashcards();
-  }, []);
+  }, [user]);
   
   const flashcardDecks = useMemo(() => ({
     "Machine Learning": allFlashcards?.["Machine Learning"] || [],
@@ -163,7 +170,7 @@ export default function FlashcardsPage() {
         <p className="text-muted-foreground">Review your flashcards to master new concepts.</p>
       </div>
       <Tabs defaultValue="ml" className="w-full">
-        <TabsList className="mx-auto">
+        <TabsList className="mx-auto grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="ml">Machine Learning ({flashcardDecks["Machine Learning"].length})</TabsTrigger>
           <TabsTrigger value="qc">Quantum Computing ({flashcardDecks["Quantum Computing"].length})</TabsTrigger>
           <TabsTrigger value="other">Other ({flashcardDecks["Other"].length})</TabsTrigger>
