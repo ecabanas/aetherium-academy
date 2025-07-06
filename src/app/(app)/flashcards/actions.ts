@@ -8,8 +8,10 @@ type AllFlashcards = {
 };
 
 async function getUserIdFromToken(idToken: string): Promise<string> {
-  if (!idToken) {
-    throw new Error("ID token must be provided.");
+  // Added more robust validation and logging
+  if (!idToken || typeof idToken !== 'string' || idToken.trim() === '') {
+    console.error("getUserIdFromToken received an invalid ID token. This is often due to a misconfiguration or the user's session expiring.", { receivedToken: idToken });
+    throw new Error("Unauthorized. A valid ID token was not provided.");
   }
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
@@ -17,6 +19,10 @@ async function getUserIdFromToken(idToken: string): Promise<string> {
   } catch (error: any) {
     const errorCode = error.code || 'UNKNOWN';
     console.error(`Error verifying ID token (code: ${errorCode}):`, error.message);
+    // This part is key: a common reason for auth/argument-error is a project mismatch.
+    if (errorCode === 'auth/argument-error') {
+       console.error("Firebase Auth Error Hint: 'auth/argument-error' can occur if the server's Firebase Admin SDK is configured for a different project than the client application, or if the server environment is not authenticated correctly.");
+    }
     throw new Error(`Unauthorized. Token verification failed with code: ${errorCode}`);
   }
 }
