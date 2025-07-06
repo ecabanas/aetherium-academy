@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { aiTutorChatbot } from "@/ai/flows/ai-tutor";
 import { generateFlashcards } from "@/ai/flows/generate-flashcards";
+import { saveFlashcardsToDatabase } from "@/app/(app)/flashcards/actions";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -88,17 +89,8 @@ export function TutorClient() {
         const newFlashcards = await generateFlashcards({ chatConversation: conversation });
         
         if (newFlashcards && newFlashcards.length > 0) {
-          const existingFlashcards = JSON.parse(localStorage.getItem('user-flashcards') || '{}');
-          const topicFlashcards = existingFlashcards[topic] || [];
-          
-          const existingQuestions = new Set(topicFlashcards.map((fc: any) => fc.question));
-          const newUniqueCards = newFlashcards.filter(fc => !existingQuestions.has(fc.question));
-
-          if(newUniqueCards.length > 0) {
-            existingFlashcards[topic] = [...topicFlashcards, ...newUniqueCards];
-            localStorage.setItem('user-flashcards', JSON.stringify(existingFlashcards));
-          }
-      }
+          await saveFlashcardsToDatabase(topic, newFlashcards);
+        }
 
         toast({
           title: "Success!",

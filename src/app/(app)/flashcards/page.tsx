@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { Flashcard } from "./flashcard";
-import { Check, RefreshCw } from "lucide-react";
+import { Check, RefreshCw, Loader2 } from "lucide-react";
+import { getFlashcardsFromDatabase } from "./actions";
 
 type FlashcardData = {
   question: string;
@@ -16,36 +17,6 @@ type FlashcardData = {
 type AllFlashcards = {
   [topic: string]: FlashcardData[];
 };
-
-const initialMlFlashcards: FlashcardData[] = [
-  {
-    question: "What is Linear Regression?",
-    answer: "A supervised learning algorithm used for predicting a continuous dependent variable based on one or more independent variables.",
-  },
-  {
-    question: "What is a Decision Tree?",
-    answer: "A supervised learning algorithm that is used for both classification and regression tasks. It has a tree-like structure.",
-  },
-  {
-    question: "Define 'Overfitting' in Machine Learning.",
-    answer: "A modeling error that occurs when a function is too closely fit to a limited set of data points. It may therefore fail to predict future observations reliably.",
-  }
-];
-
-const initialQcFlashcards: FlashcardData[] = [
-    {
-        question: "What is a Qubit?",
-        answer: "The basic unit of quantum information, the quantum analogue of the classical bit. It can exist in a superposition of states."
-    },
-    {
-        question: "What is Superposition?",
-        answer: "A fundamental principle of quantum mechanics where a quantum system can exist in multiple states at the same time until it is measured."
-    },
-    {
-        question: "What is Quantum Entanglement?",
-        answer: "A physical phenomenon that occurs when a pair or group of particles is generated in such a way that the quantum state of each particle of the pair/group cannot be described independently of the state of the others."
-    },
-];
 
 const EmptyState = () => (
     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center h-64 max-w-lg mx-auto">
@@ -67,7 +38,7 @@ const FlashcardDeck = ({ cards }: { cards: FlashcardData[] }) => {
     }
 
     const initialCount = api.scrollSnapList().length;
-    setCount(initialCount > 0 ? initialCount - 1 : 0); // Exclude completion card
+    setCount(initialCount > 1 ? initialCount - 1 : 0); // Exclude completion card
     setCurrent(api.selectedScrollSnap() + 1);
 
     const onSelect = () => {
@@ -119,7 +90,7 @@ const FlashcardDeck = ({ cards }: { cards: FlashcardData[] }) => {
         <CarouselNext className="-right-12" />
       </Carousel>
       
-      {current <= count && (
+      {current <= count && count > 0 && (
         <div className="flex justify-center gap-4">
             <Button variant="outline" size="lg" onClick={handleMark}>
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -132,63 +103,57 @@ const FlashcardDeck = ({ cards }: { cards: FlashcardData[] }) => {
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
-        <div className="text-center text-sm text-muted-foreground">
-          Card {Math.min(current, count)} of {count}
+      { count > 0 && 
+        <div className="flex flex-col gap-2">
+            <div className="text-center text-sm text-muted-foreground">
+            Card {Math.min(current, count)} of {count}
+            </div>
+            <Progress value={deckProgress} className="w-full" />
         </div>
-        <Progress value={deckProgress} className="w-full" />
-      </div>
+      }
     </div>
   );
 };
 
 
 export default function FlashcardsPage() {
-  const [allFlashcards, setAllFlashcards] = useState<AllFlashcards>({});
-  const [isMounted, setIsMounted] = useState(false);
+  const [allFlashcards, setAllFlashcards] = useState<AllFlashcards | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const storedFlashcards: AllFlashcards = JSON.parse(localStorage.getItem("user-flashcards") || "{}");
-      
-      const mergedFlashcards: AllFlashcards = {
-        "Machine Learning": [...initialMlFlashcards],
-        "Quantum Computing": [...initialQcFlashcards],
-        "Other": [],
-      };
-
-      for (const topic in storedFlashcards) {
-        if (Object.prototype.hasOwnProperty.call(storedFlashcards, topic)) {
-          if (!mergedFlashcards[topic]) {
-            mergedFlashcards[topic] = [];
-          }
-          const existingQuestions = new Set(mergedFlashcards[topic].map(fc => fc.question));
-          const newUniqueCards = storedFlashcards[topic].filter(storedCard => !existingQuestions.has(storedCard.question));
-          mergedFlashcards[topic].push(...newUniqueCards);
-        }
+    async function loadFlashcards() {
+      try {
+        setIsLoading(true);
+        const flashcards = await getFlashcardsFromDatabase();
+        setAllFlashcards(flashcards);
+      } catch (error) {
+        console.error("Failed to fetch flashcards from database", error);
+        setAllFlashcards({ "Machine Learning": [], "Quantum Computing": [], "Other": [] });
+      } finally {
+        setIsLoading(false);
       }
-      setAllFlashcards(mergedFlashcards);
-
-    } catch (error) {
-      console.error("Failed to parse flashcards from localStorage", error);
-       setAllFlashcards({
-        "Machine Learning": initialMlFlashcards,
-        "Quantum Computing": initialQcFlashcards,
-        "Other": [],
-      });
-    } finally {
-      setIsMounted(true);
     }
+    loadFlashcards();
   }, []);
   
   const flashcardDecks = useMemo(() => ({
-    "Machine Learning": allFlashcards["Machine Learning"] || [],
-    "Quantum Computing": allFlashcards["Quantum Computing"] || [],
-    "Other": allFlashcards["Other"] || [],
+    "Machine Learning": allFlashcards?.["Machine Learning"] || [],
+    "Quantum Computing": allFlashcards?.["Quantum Computing"] || [],
+    "Other": allFlashcards?.["Other"] || [],
   }), [allFlashcards]);
 
-  if (!isMounted) {
-    return null; // Or a loading spinner
+  if (isLoading) {
+    return (
+        <div className="flex flex-col gap-4">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight font-headline">My Flashcards</h1>
+                <p className="text-muted-foreground">Review your flashcards to master new concepts.</p>
+            </div>
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        </div>
+    );
   }
 
   return (
