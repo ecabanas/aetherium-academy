@@ -68,7 +68,9 @@ export function UserNav() {
               <div className="h-4 w-4" /> // Placeholder to prevent layout shift
             )}
           </div>
-          <span>Toggle Theme</span>
+          <span>
+            {mounted ? (resolvedTheme === "dark" ? "Light Mode" : "Dark Mode") : "Toggle Theme" }
+          </span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
