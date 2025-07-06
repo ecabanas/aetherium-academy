@@ -21,6 +21,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   useSidebar,
+  SidebarInset,
 } from "@/components/ui/sidebar";
 import { UserNav } from "@/components/user-nav";
 
