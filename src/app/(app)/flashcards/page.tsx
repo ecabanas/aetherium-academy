@@ -52,6 +52,30 @@ const EmptyState = () => (
     </div>
 );
 
+const FlashcardDeck = ({ cards }: { cards: FlashcardData[] }) => {
+  if (cards.length === 0) {
+    return <EmptyState />;
+  }
+
+  return (
+    <div className="relative h-80 flex items-center justify-center">
+      {cards.map((card, index) => (
+        <div
+          key={index}
+          className="absolute transition-transform duration-300 w-full max-w-sm"
+          style={{
+            transform: `rotate(${index * 1.5 - (cards.length - 1) * 0.75}deg)`,
+            zIndex: index,
+          }}
+        >
+          <Flashcard question={card.question} answer={card.answer} />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+
 export default function FlashcardsPage() {
   const [allFlashcards, setAllFlashcards] = useState<AllFlashcards>({
     "Machine Learning": initialMlFlashcards,
@@ -100,31 +124,13 @@ export default function FlashcardsPage() {
           <TabsTrigger value="other">Other</TabsTrigger>
         </TabsList>
         <TabsContent value="ml" className="mt-6">
-          {mlFlashcards.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {mlFlashcards.map((card, index) => (
-                <Flashcard key={index} question={card.question} answer={card.answer} />
-              ))}
-            </div>
-          ) : <div className="col-span-full"><EmptyState /></div> }
+          <FlashcardDeck cards={mlFlashcards} />
         </TabsContent>
         <TabsContent value="qc" className="mt-6">
-          {qcFlashcards.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {qcFlashcards.map((card, index) => (
-                <Flashcard key={index} question={card.question} answer={card.answer} />
-              ))}
-            </div>
-          ) : <div className="col-span-full"><EmptyState /></div> }
+          <FlashcardDeck cards={qcFlashcards} />
         </TabsContent>
         <TabsContent value="other" className="mt-6">
-          {otherFlashcards.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {otherFlashcards.map((card, index) => (
-                <Flashcard key={index} question={card.question} answer={card.answer} />
-              ))}
-            </div>
-          ) : <EmptyState /> }
+          <FlashcardDeck cards={otherFlashcards} />
         </TabsContent>
       </Tabs>
     </div>
