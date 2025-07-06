@@ -1,3 +1,4 @@
+
 'use server';
 
 import { firestore, auth as adminAuth } from '@/lib/firebase-admin';
@@ -7,7 +8,7 @@ type AllFlashcards = {
   [topic: string]: GenerateFlashcardsOutput;
 };
 
-// This is the initial data we can use as a fallback.
+// This is the initial data we can use as a fallback for new users.
 const initialMlFlashcards = [
   { question: "What is Linear Regression?", answer: "A supervised learning algorithm used for predicting a continuous dependent variable based on one or more independent variables." },
   { question: "What is a Decision Tree?", answer: "A supervised learning algorithm that is used for both classification and regression tasks. It has a tree-like structure." },
@@ -20,31 +21,26 @@ const sampleFlashcards: AllFlashcards = {
   "Other": [],
 };
 
-async function getUserIdFromToken(idToken: string): Promise<string | null> {
+async function getUserIdFromToken(idToken: string): Promise<string> {
   if (!idToken || typeof idToken !== 'string' || idToken.trim() === '') {
-    console.error("Attempted to verify an invalid ID token. It was either empty or not a string.");
-    return null;
+     throw new Error("Authentication error: The provided ID token was empty or invalid.");
   }
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
     return decodedToken.uid;
   } catch (error: any) {
     const errorCode = error.code || 'UNKNOWN';
-    console.error(`************************************************************************************************
-* Firebase Admin SDK Error (code: ${errorCode})
-* Message: ${error.message}
-* 
-* This error occurred while trying to verify a user's login session on the server.
-* The most common cause for 'auth/argument-error' is a project configuration mismatch:
-*   1. The frontend (browser) is configured for one Firebase project in your .env file.
-*   2. The backend (this server environment) is configured for a DIFFERENT Firebase project.
-*
-* Please ensure your environment's Google Cloud Project ID is the same as the
-* NEXT_PUBLIC_FIREBASE_PROJECT_ID in your .env file.
-*
-* The app will now fall back to using sample data or prevent write operations.
-************************************************************************************************`);
-    return null;
+    console.error(`************************************************************************************************`);
+    console.error(`* Firebase Admin SDK Error (code: ${errorCode})`);
+    console.error(`* Message: ${error.message}`);
+    console.error(`* `);
+    console.error(`* This error occurred while trying to verify a user's login session on the server.`);
+    console.error(`* 'auth/argument-error' almost always means the server environment (where this code runs) is`);
+    console.error(`* configured for a different Firebase project than the client application (what the user sees).`);
+    console.error(`* Please verify that the Google Cloud project ID of your environment matches the`);
+    console.error(`* 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' in your .env file.`);
+    console.error(`************************************************************************************************`);
+    throw new Error(`Unauthorized. Token verification failed with code: ${errorCode}`);
   }
 }
 
@@ -54,13 +50,6 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
   }
   
   const userId = await getUserIdFromToken(idToken);
-  if (!userId) {
-    // User is not authenticated, likely due to an environment config issue.
-    // We log a warning on the server and return 0 to prevent a client-side crash.
-    console.warn("Save flashcards operation skipped: User is not authenticated. Please check server logs for more details on the authentication error.");
-    return 0;
-  }
-  
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const topicDocRef = flashcardsCollectionRef.doc(topic);
@@ -86,17 +75,12 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
       }
     }
   });
+
   return uniqueNewCardsCount;
 }
 
 export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFlashcards> {
   const userId = await getUserIdFromToken(idToken);
-
-  if (!userId) {
-    console.warn("User is not authenticated, falling back to sample flashcard data.");
-    return sampleFlashcards;
-  }
-
   const userDocRef = firestore.collection('users').doc(userId);
   const flashcardsCollectionRef = userDocRef.collection('flashcards');
   const snapshot = await flashcardsCollectionRef.get();
