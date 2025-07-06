@@ -55,8 +55,10 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
   
   const userId = await getUserIdFromToken(idToken);
   if (!userId) {
-    // Throw an error to give the user clear feedback on the client side.
-    throw new Error("Authentication failed. Cannot save flashcards. Please verify your environment configuration.");
+    // User is not authenticated, likely due to an environment config issue.
+    // We log a warning on the server and return 0 to prevent a client-side crash.
+    console.warn("Save flashcards operation skipped: User is not authenticated. Please check server logs for more details on the authentication error.");
+    return 0;
   }
   
   const userDocRef = firestore.collection('users').doc(userId);
