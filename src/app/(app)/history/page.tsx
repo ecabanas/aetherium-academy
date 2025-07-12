@@ -8,9 +8,6 @@ import { getSessionsFromDatabase, type SessionData } from './actions';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -74,32 +71,26 @@ export default function HistoryPage() {
   
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Session History</h1>
-        <p className="text-muted-foreground">
-          Search, browse, and click a session to resume your conversation.
-        </p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight font-headline">Session History</h1>
+          <p className="text-muted-foreground">
+            Search and browse your past conversations.
+          </p>
+        </div>
+        <div className="relative w-full max-w-sm">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+                type="search"
+                placeholder="Search by topic or keywords..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+            />
+        </div>
       </div>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>All Sessions</CardTitle>
-                <CardDescription>
-                    A log of all your learning sessions.
-                </CardDescription>
-            </div>
-            <div className="relative w-full max-w-sm">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="Search by topic or keywords..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
-            </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
