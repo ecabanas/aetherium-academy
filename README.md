@@ -21,6 +21,7 @@ _A screenshot of the main user dashboard._
 - **🃏 AI-Generated Flashcards:** Automatically create flashcards from your chat sessions to reinforce learning and master key concepts.
 - **📊 Progress Dashboard:** Visualize your learning journey with an insightful analytics dashboard tracking your review activity and topic mastery.
 - **🗂️ Session History:** Revisit past conversations at any time to review concepts and refresh your memory.
+- **🔍 Intelligent Fuzzy Search:** Quickly find past sessions with a powerful, typo-tolerant search bar in the history view.
 - **🎨 Light & Dark Mode:** Seamlessly switch between themes for your comfort.
 
 | AI Tutor Chat                               | Flashcard Generation                        |
@@ -33,6 +34,7 @@ _A screenshot of the main user dashboard._
 - **AI Integration:** [Google AI & Genkit](https://firebase.google.com/docs/genkit)
 - **UI:** [React](https://reactjs.org/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/)
 - **Components:** [Shadcn UI](https://ui.shadcn.com/)
+- **Search:** [Fuse.js](https://fusejs.io/)
 - **Authentication & Database:** [Firebase Auth & Firestore](https://firebase.google.com/)
 
 ## Getting Started

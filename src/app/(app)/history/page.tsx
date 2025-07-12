@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/auth/auth-provider';
 import { getSessionsFromDatabase, type SessionData } from './actions';
@@ -21,14 +21,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Loader2, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import Fuse from 'fuse.js';
 
 export default function HistoryPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     async function loadSessions() {
@@ -50,6 +53,21 @@ export default function HistoryPage() {
     loadSessions();
   }, [user]);
 
+  const fuse = useMemo(() => {
+    return new Fuse(sessions, {
+      keys: ['topic', 'summary'],
+      threshold: 0.3,
+      ignoreLocation: true,
+    });
+  }, [sessions]);
+
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery) {
+      return sessions;
+    }
+    return fuse.search(searchQuery).map(result => result.item);
+  }, [searchQuery, sessions, fuse]);
+
   const handleRowClick = (sessionId: string) => {
     router.push(`/tutor?sessionId=${sessionId}`);
   };
@@ -59,15 +77,27 @@ export default function HistoryPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">Session History</h1>
         <p className="text-muted-foreground">
-          Click a session to view the transcript or resume the conversation.
+          Search, browse, and click a session to resume your conversation.
         </p>
       </div>
       <Card>
-        <CardHeader>
-          <CardTitle>All Sessions</CardTitle>
-          <CardDescription>
-            A log of all your learning sessions.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle>All Sessions</CardTitle>
+                <CardDescription>
+                    A log of all your learning sessions.
+                </CardDescription>
+            </div>
+            <div className="relative w-full max-w-sm">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search by topic or keywords..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -87,8 +117,8 @@ export default function HistoryPage() {
                     <p className="text-muted-foreground mt-2">Loading sessions...</p>
                   </TableCell>
                 </TableRow>
-              ) : sessions.length > 0 ? (
-                sessions.map((session) => (
+              ) : filteredSessions.length > 0 ? (
+                filteredSessions.map((session) => (
                   <TableRow 
                     key={session.id} 
                     onClick={() => handleRowClick(session.id)}
@@ -117,7 +147,7 @@ export default function HistoryPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center">
-                    No sessions found. Start a conversation with the AI Tutor!
+                    {searchQuery ? `No sessions found for "${searchQuery}"` : "No sessions found. Start a conversation with the AI Tutor!"}
                   </TableCell>
                 </TableRow>
               )}
