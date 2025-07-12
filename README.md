@@ -2,7 +2,7 @@
 
 Aetherium Academy is a cutting-edge, AI-powered tutoring platform designed to revolutionize personalized learning. Engage with an intelligent chatbot, automatically generate flashcards from your conversations, and track your progress through an intuitive dashboard.
 
-![Aetherium Academy Dashboard](https://placehold.co/1200x600.png)
+![Aetherium Academy Dashboard](screenshots/dashboard.png)
 _A screenshot of the main user dashboard._
 
 ## Table of Contents
