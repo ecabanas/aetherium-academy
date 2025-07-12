@@ -163,7 +163,7 @@ export function TutorClient() {
         const newFlashcards = await generateFlashcards({ chatConversation: conversation });
         
         if (newFlashcards && newFlashcards.length > 0) {
-          const addedCount = await saveFlashcardsToDatabase(idToken, topic, newFlashcards);
+          const addedCount = await saveFlashcardsToDatabase(idToken, topic, newFlashcards, sessionId);
           if (addedCount > 0) {
             toast({
               title: "Success!",

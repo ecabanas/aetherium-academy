@@ -22,7 +22,7 @@ const sampleFlashcards: AllFlashcards = {
   "Other": [],
 };
 
-export async function saveFlashcardsToDatabase(idToken: string, topic: string, newFlashcards: GenerateFlashcardsOutput): Promise<number> {
+export async function saveFlashcardsToDatabase(idToken: string, topic: string, newFlashcards: GenerateFlashcardsOutput, sessionId: string | null): Promise<number> {
   if (!newFlashcards || newFlashcards.length === 0) {
     return 0;
   }
@@ -60,6 +60,13 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
     }
   });
 
+  // If a session ID was provided and new cards were added, update the session document.
+  if (sessionId && uniqueNewCardsCount > 0) {
+    const sessionRef = userDocRef.collection('sessions').doc(sessionId);
+    // Use firestore.FieldValue.increment to safely update the count.
+    await sessionRef.set({ flashcardCount: firestore.FieldValue.increment(uniqueNewCardsCount) }, { merge: true });
+  }
+
   return uniqueNewCardsCount;
 }
 
@@ -79,7 +86,7 @@ export async function getFlashcardsFromDatabase(idToken: string): Promise<AllFla
   if (snapshot.empty) {
     // This is a new user, let's seed their account with initial data.
     // Use the idToken directly, as we know it's valid if we got this far
-    await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards);
+    await saveFlashcardsToDatabase(idToken, "Machine Learning", initialMlFlashcards, null);
     return sampleFlashcards;
   }
 

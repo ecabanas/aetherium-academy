@@ -87,9 +87,10 @@ export default function HistoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Topic</TableHead>
-                <TableHead>Last Activity</TableHead>
-                <TableHead>Messages</TableHead>
+                <TableHead className="w-[150px]">Topic</TableHead>
+                <TableHead>Summary</TableHead>
+                <TableHead className="w-[180px]">Last Activity</TableHead>
+                <TableHead className="text-center w-[120px]">Flashcards</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -105,13 +106,14 @@ export default function HistoryPage() {
                         {session.topic}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-muted-foreground">{session.summary}</TableCell>
                     <TableCell>{formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}</TableCell>
-                    <TableCell>{session.messageCount}</TableCell>
+                    <TableCell className="text-center font-medium">{session.flashcardCount}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center">
+                  <TableCell colSpan={4} className="h-24 text-center">
                     No sessions found. Start a conversation with the AI Tutor!
                   </TableCell>
                 </TableRow>
