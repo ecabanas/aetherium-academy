@@ -54,20 +54,6 @@ export default function HistoryPage() {
     router.push(`/tutor?sessionId=${sessionId}`);
   };
   
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight font-headline">Session History</h1>
-          <p className="text-muted-foreground">Review your past conversations with the AI Tutor.</p>
-        </div>
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -94,7 +80,14 @@ export default function HistoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sessions.length > 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                    <p className="text-muted-foreground mt-2">Loading sessions...</p>
+                  </TableCell>
+                </TableRow>
+              ) : sessions.length > 0 ? (
                 sessions.map((session) => (
                   <TableRow 
                     key={session.id} 
