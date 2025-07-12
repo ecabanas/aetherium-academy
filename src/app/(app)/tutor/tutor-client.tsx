@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useRef, useEffect, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect, useTransition, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/auth/auth-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, BrainCircuit, GraduationCap, Send, Sparkles, User as UserIcon } from "lucide-react";
+import { Bot, BrainCircuit, GraduationCap, Send, Sparkles, User as UserIcon, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { aiTutorChatbot } from "@/ai/flows/ai-tutor";
 import { generateFlashcards } from "@/ai/flows/generate-flashcards";
 import { saveFlashcardsToDatabase } from "@/app/(app)/flashcards/actions";
+import { getSessionById, saveSessionToDatabase } from "@/app/(app)/history/actions";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -31,14 +32,58 @@ type Message = {
 
 export function TutorClient() {
   const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [topic, setTopic] = useState("Machine Learning");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isPending, startTransition] = useTransition();
   const [isGenerating, setIsGenerating] = useTransition();
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
+
   const { toast } = useToast();
-  const router = useRouter();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  const resetChat = useCallback(() => {
+    setSessionId(null);
+    setMessages([]);
+    // Remove session ID from URL without reloading the page
+    router.replace('/tutor', { scroll: false });
+  }, [router]);
+
+  useEffect(() => {
+    const loadSession = async (id: string) => {
+      if (!user) return;
+      setIsSessionLoading(true);
+      try {
+        const idToken = await user.getIdToken();
+        const session = await getSessionById(idToken, id);
+        if (session) {
+          setSessionId(session.id);
+          setTopic(session.topic);
+          setMessages(session.messages);
+        } else {
+          toast({ title: "Session not found", variant: "destructive" });
+          resetChat();
+        }
+      } catch (error) {
+        toast({ title: "Error loading session", variant: "destructive" });
+        console.error(error);
+        resetChat();
+      } finally {
+        setIsSessionLoading(false);
+      }
+    };
+
+    const sessionIdFromUrl = searchParams.get("sessionId");
+    if (sessionIdFromUrl) {
+      loadSession(sessionIdFromUrl);
+    } else {
+      setIsSessionLoading(false);
+    }
+  }, [searchParams, user, toast, resetChat]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -48,20 +93,35 @@ export function TutorClient() {
       });
     }
   }, [messages]);
-  
+
   const handleSendMessage = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !user) return;
 
     const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    const currentInput = input;
     setInput("");
 
     startTransition(async () => {
       try {
-        const chatHistory = messages.map(m => ({ role: m.role as 'user' | 'model', content: m.content }));
-        const response = await aiTutorChatbot({ topic, question: input, chatHistory });
+        const response = await aiTutorChatbot({ topic, question: currentInput, chatHistory: messages });
         const assistantMessage: Message = { role: "model", content: response.answer };
-        setMessages((prev) => [...prev, assistantMessage]);
+        const finalMessages = [...newMessages, assistantMessage];
+        setMessages(finalMessages);
+        
+        const idToken = await user.getIdToken();
+        const newSessionId = await saveSessionToDatabase(idToken, {
+          id: sessionId || undefined,
+          topic,
+          createdAt: new Date().toISOString(),
+          messages: finalMessages,
+        });
+        if (!sessionId) {
+          setSessionId(newSessionId);
+          // Add session ID to URL without reloading
+          router.replace(`/tutor?sessionId=${newSessionId}`, { scroll: false });
+        }
       } catch (error) {
         toast({
           title: "Error",
@@ -134,12 +194,26 @@ export function TutorClient() {
     });
   };
 
+  if (isSessionLoading) {
+     return (
+        <div className="flex h-full w-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-4">
           <CardTitle className="font-headline">AI Tutor</CardTitle>
-          <Select defaultValue="Machine Learning" onValueChange={(newTopic) => { setTopic(newTopic); setMessages([]) }}>
+          <Select 
+            value={topic} 
+            onValueChange={(newTopic) => { 
+                setTopic(newTopic); 
+                resetChat();
+            }}
+          >
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Select a topic" />
             </SelectTrigger>
@@ -174,7 +248,7 @@ export function TutorClient() {
             {messages.length === 0 && (
                 <div className="text-center text-muted-foreground h-full flex flex-col justify-center items-center gap-2">
                     <Bot size={48} />
-                    <p>Start the conversation by asking a question about {topic}.</p>
+                    <p>Start a new conversation by asking a question about {topic}.</p>
                 </div>
             )}
             {messages.map((message, index) => (
