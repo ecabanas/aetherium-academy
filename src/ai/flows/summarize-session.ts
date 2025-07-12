@@ -12,6 +12,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SummarizeSessionInputSchema = z.object({
+  topic: z.string().describe('The main topic of the conversation.'),
   chatConversation: z
     .string()
     .describe('The complete chat conversation to summarize.'),
@@ -31,12 +32,16 @@ const prompt = ai.definePrompt({
   name: 'summarizeSessionPrompt',
   input: {schema: SummarizeSessionInputSchema},
   output: {schema: SummarizeSessionOutputSchema},
-  prompt: `You are an expert in summarizing conversations.
+  prompt: `You are an expert in summarizing conversations about {{{topic}}}.
   
-  Given the following chat conversation, extract the 3 to 5 most important and descriptive keywords that represent the main topics.
-  Return them as a single, comma-separated string.
+  Given the following chat conversation, extract 3 to 5 of the most descriptive and distinct keywords that represent the specific concepts discussed.
   
-  For example: "Machine Learning, Neural Networks, Overfitting, Backpropagation"
+  IMPORTANT: 
+  - Do NOT include the main topic ("{{{topic}}}") or simple variations of it in your keywords.
+  - Focus on specific terms, people, or concepts that were discussed within the topic.
+  - Return the keywords as a single, comma-separated string.
+  
+  For example, if the topic is "Machine Learning" and the conversation is about decision trees and overfitting, a good summary would be "Decision Trees, Overfitting, Pruning, Supervised Learning". A bad summary would be "Machine Learning, AI, Learning".
 
   Chat Conversation:
   {{{chatConversation}}}`,

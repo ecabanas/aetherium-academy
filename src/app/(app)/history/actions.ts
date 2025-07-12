@@ -31,7 +31,10 @@ export async function saveSessionToDatabase(idToken: string, session: Omit<Sessi
   
   // Generate a summary from the conversation.
   const conversationText = session.messages.map(m => `${m.role}: ${m.content}`).join('\n');
-  const { summary } = await summarizeSession({ chatConversation: conversationText });
+  const { summary } = await summarizeSession({ 
+    topic: session.topic,
+    chatConversation: conversationText 
+  });
   
   if (session.id) {
     // Update existing session
