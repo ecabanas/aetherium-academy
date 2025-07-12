@@ -100,7 +100,7 @@ export default function HistoryPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex gap-1">
                         {session.summary.split(',').map((keyword, index) => (
                           <Badge key={index} variant="outline" className="font-normal">
                             {keyword.trim()}
