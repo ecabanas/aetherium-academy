@@ -1,7 +1,8 @@
 
 'use server';
 
-import { firestore, auth as adminAuth } from '@/lib/firebase-admin';
+import { firestore } from '@/lib/firebase-admin';
+import { getUserIdFromToken } from '@/lib/firebase-admin';
 import type { GenerateFlashcardsOutput } from '@/ai/flows/generate-flashcards';
 
 type AllFlashcards = {
@@ -20,34 +21,6 @@ const sampleFlashcards: AllFlashcards = {
   "Quantum Computing": [],
   "Other": [],
 };
-
-async function getUserIdFromToken(idToken: string): Promise<string | null> {
-  if (!idToken || typeof idToken !== 'string' || idToken.trim() === '') {
-     console.error("Authentication error: The provided ID token was empty or invalid. This may happen if the user is not logged in.");
-     return null;
-  }
-  try {
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    return decodedToken.uid;
-  } catch (error: any) {
-    const errorCode = error.code || 'UNKNOWN';
-    console.error(`************************************************************************************************`);
-    console.error(`* Firebase Admin SDK Error (code: ${errorCode})`);
-    console.error(`* Message: ${error.message}`);
-    console.error(`* `);
-    console.error(`* This error occurred while trying to verify a user's login session on the server.`);
-    console.error(`* This usually means the backend environment is not configured for the correct Firebase project.`);
-    if (errorCode === 'auth/argument-error') {
-      console.error(`* 'auth/argument-error' almost always means the server environment (where this code runs) is`);
-      console.error(`* configured for a different Firebase project than the client application (what the user sees).`);
-      console.error(`* Please verify that the Google Cloud project ID of your environment matches the`);
-      console.error(`* 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' in your .env file.`);
-    }
-    console.error(`************************************************************************************************`);
-    // Return null instead of throwing an error to prevent crashing the app.
-    return null;
-  }
-}
 
 export async function saveFlashcardsToDatabase(idToken: string, topic: string, newFlashcards: GenerateFlashcardsOutput): Promise<number> {
   if (!newFlashcards || newFlashcards.length === 0) {
