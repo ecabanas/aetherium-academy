@@ -33,10 +33,10 @@ const prompt = ai.definePrompt({
   output: {schema: SummarizeSessionOutputSchema},
   prompt: `You are an expert in summarizing conversations.
   
-  Given the following chat conversation, extract the 3 to 5 most important keywords that represent the main topics.
+  Given the following chat conversation, extract the 3 to 5 most important and descriptive keywords that represent the main topics.
   Return them as a single, comma-separated string.
   
-  For example: "Machine Learning, Neural Networks, Overfitting, Python"
+  For example: "Machine Learning, Neural Networks, Overfitting, Backpropagation"
 
   Chat Conversation:
   {{{chatConversation}}}`,

@@ -99,7 +99,15 @@ export default function HistoryPage() {
                         {session.topic}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{session.summary}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {session.summary.split(',').map((keyword, index) => (
+                          <Badge key={index} variant="outline" className="font-normal">
+                            {keyword.trim()}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
                     <TableCell>{formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}</TableCell>
                     <TableCell className="text-center font-medium">{session.flashcardCount}</TableCell>
                   </TableRow>
