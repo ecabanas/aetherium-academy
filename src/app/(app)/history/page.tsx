@@ -103,10 +103,10 @@ export default function HistoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[150px]">Topic</TableHead>
+                <TableHead>Topic</TableHead>
                 <TableHead>Keywords</TableHead>
-                <TableHead className="w-[180px]">Last Activity</TableHead>
-                <TableHead className="text-center w-[120px]">Flashcards</TableHead>
+                <TableHead>Last Activity</TableHead>
+                <TableHead className="text-center">Flashcards</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
