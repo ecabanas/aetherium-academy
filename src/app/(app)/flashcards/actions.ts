@@ -4,6 +4,7 @@
 import { firestore } from '@/lib/firebase-admin';
 import { getUserIdFromToken } from '@/lib/firebase-admin';
 import type { GenerateFlashcardsOutput } from '@/ai/flows/generate-flashcards';
+import { FieldValue } from 'firebase-admin/firestore';
 
 type AllFlashcards = {
   [topic: string]: GenerateFlashcardsOutput;
@@ -63,8 +64,8 @@ export async function saveFlashcardsToDatabase(idToken: string, topic: string, n
   // If a session ID was provided and new cards were added, update the session document.
   if (sessionId && uniqueNewCardsCount > 0) {
     const sessionRef = userDocRef.collection('sessions').doc(sessionId);
-    // Use firestore.FieldValue.increment to safely update the count.
-    await sessionRef.set({ flashcardCount: firestore.FieldValue.increment(uniqueNewCardsCount) }, { merge: true });
+    // Use FieldValue.increment to safely update the count.
+    await sessionRef.set({ flashcardCount: FieldValue.increment(uniqueNewCardsCount) }, { merge: true });
   }
 
   return uniqueNewCardsCount;
