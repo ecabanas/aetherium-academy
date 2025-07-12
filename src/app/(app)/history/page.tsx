@@ -100,12 +100,14 @@ export default function HistoryPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        {session.summary.split(',').map((keyword, index) => (
-                          <Badge key={index} variant="outline" className="font-normal">
-                            {keyword.trim()}
-                          </Badge>
-                        ))}
+                       <div className="max-w-xs overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <div className="flex gap-1">
+                          {session.summary.split(',').map((keyword, index) => (
+                            <Badge key={index} variant="outline" className="font-normal whitespace-nowrap">
+                              {keyword.trim()}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{formatDistanceToNow(new Date(session.createdAt), { addSuffix: true })}</TableCell>
