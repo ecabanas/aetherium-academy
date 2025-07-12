@@ -95,7 +95,7 @@ export default function HistoryPage() {
                     className="cursor-pointer"
                   >
                     <TableCell className="font-medium">
-                      <Badge variant={session.topic === "Machine Learning" ? "default" : session.topic === "Quantum Computing" ? "secondary" : "outline"}>
+                      <Badge variant={session.topic === "Machine Learning" ? "default" : session.topic === "Quantum Computing" ? "secondary" : "outline"} className="whitespace-nowrap">
                         {session.topic}
                       </Badge>
                     </TableCell>
