@@ -25,7 +25,7 @@ _A screenshot of the main user dashboard._
 
 | AI Tutor Chat                               | Flashcard Generation                        |
 | ------------------------------------------- | ------------------------------------------- |
-| ![AI Tutor Chat](https://placehold.co/600x400.png) | ![Flashcard View](https://placehold.co/600x400.png) |
+| ![AI Tutor Chat](screenshots/ai-tutor-chat.png) | ![Flashcard View](screenshots/flashcard-generation.png) |
 
 ## Tech Stack
 
