@@ -19,7 +19,7 @@ const SummarizeSessionInputSchema = z.object({
 export type SummarizeSessionInput = z.infer<typeof SummarizeSessionInputSchema>;
 
 const SummarizeSessionOutputSchema = z.object({
-    summary: z.string().describe('A concise, one-sentence summary of the conversation.'),
+    summary: z.string().describe('A comma-separated list of 3-5 main keywords from the conversation.'),
 });
 export type SummarizeSessionOutput = z.infer<typeof SummarizeSessionOutputSchema>;
 
@@ -33,8 +33,11 @@ const prompt = ai.definePrompt({
   output: {schema: SummarizeSessionOutputSchema},
   prompt: `You are an expert in summarizing conversations.
   
-  Given the following chat conversation, generate a concise, one-sentence summary of what was discussed.
+  Given the following chat conversation, extract the 3 to 5 most important keywords that represent the main topics.
+  Return them as a single, comma-separated string.
   
+  For example: "Machine Learning, Neural Networks, Overfitting, Python"
+
   Chat Conversation:
   {{{chatConversation}}}`,
 });
@@ -48,7 +51,7 @@ const summarizeSessionFlow = ai.defineFlow(
   async input => {
     // If the conversation is very short, return a default message instead of using the AI.
     if (input.chatConversation.length < 50) {
-        return { summary: "A new session has just started." };
+        return { summary: "New Session" };
     }
     const {output} = await prompt(input);
     if (!output) {

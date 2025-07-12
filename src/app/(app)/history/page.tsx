@@ -88,7 +88,7 @@ export default function HistoryPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[150px]">Topic</TableHead>
-                <TableHead>Summary</TableHead>
+                <TableHead>Keywords</TableHead>
                 <TableHead className="w-[180px]">Last Activity</TableHead>
                 <TableHead className="text-center w-[120px]">Flashcards</TableHead>
               </TableRow>
